@@ -1,5 +1,6 @@
 import datetime
 import random
+from functools import wraps
 from math import sqrt
 from typing import Optional
 
@@ -74,7 +75,6 @@ d = Custom(value='other val')
 print(d)
 print(c)
 
-
 ###########################################################################
 #                        SINGLETON WITH DECORATORS                        #
 ###########################################################################
@@ -129,13 +129,153 @@ def get_pow(a: int) -> float:
 
 
 funcs = [get_pow, get_sqrt]
-while True:
-    number = input('Enter number: ')
-    func = random.choice(funcs)
-    result = func(int(number))
-    print(f'Result is: {result}\n\n')
+
+
+# while True:
+#     number = input('Enter number: ')
+#     func = random.choice(funcs)
+#     result = func(int(number))
+#     print(f'Result is: {result}\n\n')
 
 
 ##################################################
 #             decorators with params             #
 ##################################################
+def cached(limit: int = 100):
+    def decorator(func):
+        _cache = {}
+
+        def new_func(a: int):
+            print(_cache)
+            if a not in _cache:
+                if len(_cache) >= limit:
+                    return func(a)
+                _cache[a] = func(a)
+            return _cache[a]
+
+        return new_func
+
+    return decorator
+
+
+@cached(limit=5)
+def get_sqrt(a: int) -> float:
+    print('Compute SQRT value...')
+    return sqrt(a)
+
+
+# while True:
+#     number = input('Enter number: ')
+#     result = get_sqrt(int(number))
+#     print(f'Result is: {result}\n\n')
+
+
+##################################################
+#                     @wraps                     #
+##################################################
+
+def cached(limit: int = 100):
+    def decorator(func):
+        _cache = {}
+
+        @wraps(func)
+        def new_func(a: int):
+            print(_cache)
+            if a not in _cache:
+                if len(_cache) >= limit:
+                    return func(a)
+                _cache[a] = func(a)
+            return _cache[a]
+
+        return new_func
+
+    return decorator
+
+
+@cached(limit=5)
+def get_sqrt(a: int) -> float:
+    """
+    :param a: number for witch SQRT value will be calculated
+    :return: SQRT of a param
+    """
+    print('Compute SQRT value...')
+    return sqrt(a)
+
+#
+# while True:
+#     number = input('Enter number: ')
+#     result = get_sqrt(int(number))
+#     print(get_sqrt.__name__) # new_func
+#     print(get_sqrt.__doc__) # None
+#     print(f'Result is: {result}\n\n')
+
+
+# TODO cached_property
+
+##################################################
+#                class decorators                #
+##################################################
+
+"""
+class decorators can change behavior of class
+"""
+
+def cached(method):
+    method._cached = True ### mark method to be cached
+    return method
+
+
+def actual_cache_decorator(method, cache_param_name):
+    method_name = method.__name__
+
+    def cached_method(self):
+        global_cache = getattr(self, cache_param_name)
+
+        if method_name not in global_cache:
+            global_cache[method_name] = {}
+        cache = global_cache[method_name]
+
+        if self._value not in cache:
+            cache[self._value] = method(self)
+        return cache[self._value]
+
+    return cached_method
+
+
+def cached_methods(cache_param_name):
+    def decorator(klass):
+        setattr(klass, cache_param_name, {})
+
+        for attr_name in klass.__dict__:
+            attr = getattr(klass, attr_name)
+            if hasattr(attr, '_cached') and attr._cached: # get marked methods
+                setattr(klass, attr_name, actual_cache_decorator(attr, cache_param_name)) # set actual cache decorator
+        return klass
+
+    return decorator
+
+
+@cached_methods('MY_CACHE') # define, that class may have cached methods and define name of cache param
+class Number:
+
+    def __init__(self, value):
+        self._value = value
+
+    @cached ### mark cached method
+    def sqrt(self):
+        return type(self)(sqrt(self._value))
+
+    @cached ### mark cached method
+    def half(self):
+        return type(self)(self._value // 2)
+
+    def __repr__(self):
+        return f'Number({self._value})'
+
+num = Number(15)
+num.half()
+print(num)
+print(num.MY_CACHE)
+
+
+

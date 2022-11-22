@@ -31,5 +31,5 @@ def generate_comment_header(comment: str, header_type: str = 'large') -> str:
     return header
 
 
-generate_comment_header('decorators with params', header_type='medium')
+generate_comment_header('Class decorators', header_type='medium')
 
