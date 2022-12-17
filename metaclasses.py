@@ -277,5 +277,25 @@ num.half()
 print(num)
 print(num.MY_CACHE)
 
+##################################
 
+
+def Singleton(klass: object):
+
+    instance = None
+
+    new_new_method = lambda meth: instance if instance else super(klass).__new__(klass)
+    setattr(klass, '__new__', new_new_method)
+
+
+    return klass
+
+@Singleton
+class SomeClass(object):
+    def __init__(self, value):
+        self._value = value
+
+
+wer =SomeClass('wegw')
+qw = SomeClass('wergwsetg')
 
